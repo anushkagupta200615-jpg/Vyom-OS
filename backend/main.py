@@ -1,14 +1,10 @@
 import os
-# Set HuggingFace cache to D: drive where there is 160GB free space
-os.environ["HF_HOME"] = r"D:\Vyom-OS\huggingface_cache"
-
 import random
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import chromadb
-from sentence_transformers import SentenceTransformer
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 import numpy as np
 import warnings
 
@@ -28,17 +24,32 @@ print("Initializing Vector Database...")
 chroma_client = chromadb.Client()
 collection = chroma_client.get_or_create_collection(name="research_papers")
 
-print("Loading embeddings model (SentenceTransformers)...")
-embedder = SentenceTransformer('all-MiniLM-L6-v2')
+HF_API_TOKEN = os.environ.get("HF_API_TOKEN", "")
+HEADERS = {"Authorization": f"Bearer {HF_API_TOKEN}"} if HF_API_TOKEN else {}
 
-print(f"Loading Local LLM (google/flan-t5-small) to Cache: {os.environ.get('HF_HOME')}...")
-tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-small")
-llm_model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-small")
+def get_embedding(text: str) -> list[float]:
+    api_url = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
+    try:
+        response = httpx.post(api_url, headers=HEADERS, json={"inputs": text}, timeout=10.0)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Embedding API Error: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"Embedding request failed: {e}")
+    # Fallback to a zero vector to prevent crashing
+    return [0.0] * 384
 
 def generate_text(prompt: str) -> str:
-    inputs = tokenizer(prompt, return_tensors="pt")
-    outputs = llm_model.generate(**inputs, max_length=150)
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+    api_url = "https://api-inference.huggingface.co/models/google/flan-t5-small"
+    try:
+        response = httpx.post(api_url, headers=HEADERS, json={"inputs": prompt, "parameters": {"max_length": 150}}, timeout=15.0)
+        if response.status_code == 200:
+            return response.json()[0].get("generated_text", "Failed to parse API response.")
+        else:
+            return f"API Error: {response.status_code} - {response.text}"
+    except Exception as e:
+        return f"Local Generation Error: Failed to reach Hugging Face API ({e})."
 
 print("Ingesting knowledge base...")
 try:
@@ -47,7 +58,7 @@ try:
         papers = content.split("\n\nTitle:")
         for i, p in enumerate(papers):
             doc = p if i == 0 else "Title:" + p
-            emb = embedder.encode(doc).tolist()
+            emb = get_embedding(doc)
             collection.upsert(
                 documents=[doc],
                 embeddings=[emb],
@@ -82,7 +93,7 @@ def receive_edge_data(report: AnomalyReport):
         spread_prediction.append({"day": day, "spread_radius_km": round(base_spread * growth_factor, 2)})
 
     # 2. RAG Retrieval
-    query_emb = embedder.encode(report.type).tolist()
+    query_emb = get_embedding(report.type)
     results = collection.query(
         query_embeddings=[query_emb],
         n_results=1
