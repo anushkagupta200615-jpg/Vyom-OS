@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Activity, AlertTriangle, Satellite, Database, ActivitySquare, Map as MapIcon } from 'lucide-react';
 import axios from 'axios';
 import Globe from 'react-globe.gl';
 
 const MapVisualization = ({ anomalyData }: { anomalyData: any }) => {
-  const globeEl = useRef<any>();
+  const globeEl = useRef<any>(null);
   
   useEffect(() => {
     if (globeEl.current) {
