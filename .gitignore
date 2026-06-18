@@ -1,0 +1,11 @@
+# Ignore huggingface cache and virtual environments
+huggingface_cache/
+backend/venv/
+backend/__pycache__/
+backend/.pytest_cache/
+backend/.env
+
+# Ignore node_modules
+frontend/node_modules/
+frontend/dist/
+frontend/.env

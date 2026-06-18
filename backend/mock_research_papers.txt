@@ -1,0 +1,16 @@
+Title: Early Detection of Urban Heat Islands Using Edge-Processed Satellite Imagery
+Authors: Dr. A. Sharma, Dr. M. Gupta (ISRO-Simulated Research)
+Abstract:
+Urban Heat Islands (UHIs) present a severe risk to dense city centers. Real-time detection using edge-processed satellite imagery allows for immediate infrastructure mitigation. The Vyom OS framework demonstrates that thermal anomalies exceeding 40°C in urban grids require immediate deployment of cooling centers.
+Key Findings:
+1. When grid cell temperature gradient > 5°C relative to surrounding cells, structural heat absorption is critical.
+2. Recommended mitigation: Deploy emergency water sprinklers and open cooling centers in affected grids.
+3. Prediction model indicates a 30% spread to adjacent grids within 24 hours if unmitigated.
+
+Title: Predictive Modelling of Forest Fires Using Multi-Spectral Sensor Data
+Authors: R. Singh, K. Patel
+Abstract:
+Forest fires expand rapidly. Multi-spectral sensors on low-earth orbit satellites can identify pre-ignition thermal signatures.
+Key Findings:
+1. Rapid expansion is expected when dry vegetation index is high coupled with wind speeds > 15 km/h.
+2. Data should be prioritized and compressed for earth transmission to reduce latency.
