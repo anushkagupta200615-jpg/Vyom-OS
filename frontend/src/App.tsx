@@ -49,8 +49,10 @@ function App() {
   const [isTransmitting, setIsTransmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
   useEffect(() => {
-    axios.get('http://localhost:8000/api/dashboard/status')
+    axios.get(`${API_BASE_URL}/api/dashboard/status`)
       .then(res => setDashboardStatus(res.data))
       .catch(err => console.error("Backend not running yet", err));
   }, []);
@@ -72,7 +74,7 @@ function App() {
       timestamp: new Date().toISOString()
     };
 
-    axios.post('http://localhost:8000/api/edge/transmit', payload)
+    axios.post(`${API_BASE_URL}/api/edge/transmit`, payload)
       .then(res => {
         setAnomalyData(res.data);
         setIsTransmitting(false);
