@@ -26,7 +26,7 @@ const MapVisualization = ({ anomalyData }: { anomalyData: any }) => {
     <div className="relative w-full h-full bg-black rounded-xl overflow-hidden border border-slate-700/50 flex items-center justify-center">
       <Globe
         ref={globeEl}
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
+        globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
         ringsData={ringsData}
@@ -38,6 +38,19 @@ const MapVisualization = ({ anomalyData }: { anomalyData: any }) => {
       <div className="absolute bottom-4 left-4 z-10 text-center flex flex-col items-center bg-black/60 p-3 rounded-xl backdrop-blur-sm border border-slate-700/50">
         <MapIcon className="w-6 h-6 text-blue-500/80 mb-1" />
         <h3 className="text-sm font-semibold text-blue-400 tracking-wider uppercase">3D Digital Twin</h3>
+      </div>
+      <div className="absolute bottom-4 right-4 z-10 flex flex-col bg-black/60 p-4 rounded-xl backdrop-blur-sm border border-slate-700/50">
+        <h3 className="text-xs font-semibold text-slate-300 tracking-wider uppercase mb-2">Map Legend</h3>
+        <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
+          <div className="w-3 h-3 rounded-full bg-red-500/50 border border-red-500 animate-pulse"></div>
+          <span>Anomaly Epicenter</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="w-4 h-4 rounded-full border-2 border-red-500/30 flex items-center justify-center">
+            <div className="w-2 h-2 rounded-full border border-red-500/50"></div>
+          </div>
+          <span>Predicted Severity Spread</span>
+        </div>
       </div>
     </div>
   );
@@ -61,16 +74,23 @@ function App() {
     setIsTransmitting(true);
     setErrorMsg(null);
     
+    const anomalyTypes = [
+      "Urban Heat Island Signature",
+      "Forest Fire Pre-Ignition",
+      "Oceanic Oil Spill",
+      "Unregistered Vessel Activity",
+      "Methane Plume Emission"
+    ];
     const lats = [28.6139, 40.7128, 51.5074, -33.8688, 35.6895];
     const lngs = [77.2090, -74.0060, -0.1278, 151.2093, 139.6917];
     const randIdx = Math.floor(Math.random() * lats.length);
 
     const payload = {
       id: `ANOM-${Math.floor(Math.random() * 1000)}`,
-      type: "Urban Heat Island Signature",
+      type: anomalyTypes[Math.floor(Math.random() * anomalyTypes.length)],
       location: { lat: lats[randIdx], lng: lngs[randIdx], grid: `GRID-${randIdx}` },
-      severity: 0.92,
-      confidence: 0.98,
+      severity: Number((0.7 + Math.random() * 0.28).toFixed(2)),
+      confidence: Number((0.85 + Math.random() * 0.14).toFixed(2)),
       timestamp: new Date().toISOString()
     };
 
@@ -122,7 +142,7 @@ function App() {
         
         {/* Left Sidebar */}
         <div className="lg:col-span-3 flex flex-col gap-6">
-          <div className="glass-panel p-5 rounded-xl border border-slate-700/50 shadow-xl relative overflow-hidden group bg-slate-900/50">
+          <div className="glass-panel p-5 rounded-xl border border-slate-700/50 shadow-xl relative overflow-hidden group bg-slate-900/50 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(37,99,235,0.2)] transition-all duration-300">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
             <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
               <Satellite className="w-5 h-5 text-blue-400" /> Space Layer Sim
@@ -138,7 +158,7 @@ function App() {
             </button>
           </div>
 
-          <div className="glass-panel p-5 rounded-xl border border-slate-700/50 shadow-xl flex-1 bg-slate-900/50">
+          <div className="glass-panel p-5 rounded-xl border border-slate-700/50 shadow-xl flex-1 bg-slate-900/50 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(99,102,241,0.2)] transition-all duration-300">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
               <Database className="w-5 h-5 text-indigo-400" /> Ground Station Status
             </h2>
@@ -158,7 +178,7 @@ function App() {
 
         {/* Right Sidebar - RAG Report */}
         <div className="lg:col-span-3 flex flex-col gap-6">
-          <div className="glass-panel p-5 rounded-xl border border-slate-700/50 shadow-xl flex-1 flex flex-col overflow-hidden relative bg-slate-900/50">
+          <div className="glass-panel p-5 rounded-xl border border-slate-700/50 shadow-xl flex-1 flex flex-col overflow-hidden relative bg-slate-900/50 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(239,68,68,0.2)] transition-all duration-300">
             <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-red-500 to-orange-500"></div>
             
             <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">

@@ -14,3 +14,31 @@ Forest fires expand rapidly. Multi-spectral sensors on low-earth orbit satellite
 Key Findings:
 1. Rapid expansion is expected when dry vegetation index is high coupled with wind speeds > 15 km/h.
 2. Data should be prioritized and compressed for earth transmission to reduce latency.
+3. Mitigation Directive: Dispatch aerial firefighting units to perimeter grids and establish firebreaks immediately.
+
+Title: Oceanic Oil Spill Detection and Trajectory Forecasting
+Authors: L. Chen, M. Rodriguez
+Abstract:
+Synthetic Aperture Radar (SAR) combined with edge AI provides near-instantaneous detection of maritime oil spills. Oil slicks dampen surface capillary waves, presenting as dark anomalies on SAR imagery.
+Key Findings:
+1. Slicks expand according to local ocean currents and wind vectors.
+2. Immediate response is required if slicks approach within 50km of coastal ecosystems.
+3. Mitigation Directive: Deploy chemical dispersants and containment booms within a 10km radius of the epicenter.
+
+Title: Unregistered Vessel Activity and Illegal Fishing Monitoring
+Authors: H. Yamamoto
+Abstract:
+Satellites equipped with RF sensors and optical arrays can detect "dark fleets"—vessels operating with disabled AIS transponders.
+Key Findings:
+1. High correlation between dark vessel clusters and marine protected areas.
+2. Edge ML can classify vessel types based on wake patterns.
+3. Mitigation Directive: Dispatch coast guard interceptors to provided coordinates and alert regional maritime authorities.
+
+Title: Methane Plume Detection from Industrial Facilities
+Authors: S. Dubois, J. Smith
+Abstract:
+High-resolution hyperspectral imaging from orbit isolates localized methane emission plumes invisible to the naked eye.
+Key Findings:
+1. Methane super-emitters account for a disproportionate amount of greenhouse gas emissions.
+2. Plumes detected exceeding 100 kg/hr require immediate on-ground verification.
+3. Mitigation Directive: Issue automated regulatory alerts to facility operators and dispatch ground inspection teams to halt leaks.
