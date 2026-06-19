@@ -4,6 +4,29 @@ Vyom OS is an autonomous edge-to-ground station architecture designed to simulat
 
 ## Architecture Overview
 
+```mermaid
+graph TD
+    subgraph "Space Edge Layer (Simulated)"
+        A[Anomaly Detection] -->|Telemetry & Payload| B[Edge Transmission]
+    end
+
+    subgraph "Ground Station Backend (FastAPI)"
+        B --> C[API Gateway]
+        C --> D[Context Retrieval]
+        D <--> E[(ChromaDB Vector Store)]
+        C --> F[AI Generation]
+        F <--> G[Local LLM: flan-t5-small]
+        E -.->|RAG Context| F
+        C --> H[Predictive ML Simulator]
+    end
+
+    subgraph "Command Center Frontend (React + Vite)"
+        C -->|Mitigation & Tracking Data| I[Digital Twin 3D Dashboard]
+        I --> J[react-globe.gl Visualization]
+        I --> K[Anomaly Reports UI]
+    end
+```
+
 The system is composed of two primary layers:
 
 ### 1. Ground Station Backend (FastAPI + AI Models)
