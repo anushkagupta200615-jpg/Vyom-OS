@@ -87,3 +87,38 @@ async def fetch_flare_events(days: int = 7) -> list[dict]:
         except Exception as e:
             print(f"Error fetching flare events: {e}")
             return []
+
+async def fetch_nasa_donki_flares() -> list[dict]:
+    end_date = datetime.utcnow().strftime('%Y-%m-%d')
+    start_date = (datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d')
+    url = f"https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/FLR?startDate={start_date}&endDate={end_date}"
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(url, timeout=10.0)
+            if r.status_code == 200:
+                data = r.json()
+                return data if isinstance(data, list) else []
+            return []
+        except Exception as e:
+            print(f"Error fetching NASA DONKI: {e}")
+            return []
+
+async def fetch_isro_tles() -> dict:
+    url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle"
+    target_sats = ["ADITYA-L1", "CHANDRAYAAN-3", "RESOURCESAT-2A", "CARTOSAT-3", "INSAT-3DR", "NVS-01", "IRNSS-1I"]
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(url, timeout=20.0)
+            if r.status_code == 200:
+                lines = r.text.strip().split('\n')
+                tles = {}
+                for i in range(0, len(lines), 3):
+                    if i+2 < len(lines):
+                        name = lines[i].strip()
+                        if any(target in name for target in target_sats):
+                            tles[name] = [lines[i+1].strip(), lines[i+2].strip()]
+                return tles
+            return {}
+        except Exception as e:
+            print(f"Error fetching TLEs: {e}")
+            return {}

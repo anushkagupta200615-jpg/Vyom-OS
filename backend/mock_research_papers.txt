@@ -42,3 +42,30 @@ Key Findings:
 1. Methane super-emitters account for a disproportionate amount of greenhouse gas emissions.
 2. Plumes detected exceeding 100 kg/hr require immediate on-ground verification.
 3. Mitigation Directive: Issue automated regulatory alerts to facility operators and dispatch ground inspection teams to halt leaks.
+
+Title: ISRO Space Weather Advisory Protocol for Aditya-L1 and ISRO Constellation
+Authors: Space Environment Control Board (SECB), ISRO
+Abstract:
+Standard operating procedures for managing high-energy particle events, Coronal Mass Ejections (CMEs), and severe solar flares affecting ISRO spacecraft (RESOURCESAT, CARTOSAT, Aditya-L1).
+Key Findings:
+1. When an X-class solar flare is detected by DONKI/Aditya-L1 SUIT instrument, high-risk deep space anomalies are highly probable within 15 to 45 minutes.
+2. South Atlantic Anomaly (SAA) operations: ISRO satellites crossing the SAA during a severe geomagnetic storm (Kp > 5) MUST power down sensitive optical payloads immediately to prevent Single Event Upsets (SEU).
+3. Mitigation Directive: Enter Safe Mode. Shut down high-voltage systems. Orient solar panels edge-on to the incoming radiation flux. NavIC signals may degrade; switch to backup ground telemetry.
+
+Title: Mitigation of D-Region Absorption and HF Radio Blackout in Ground Operations
+Authors: ISRO Ground Command (ISTRAC, Bengaluru)
+Abstract:
+Analysis of communication degradation between ISTRAC ground stations and LEO satellites during severe X-ray flux events. Solar X-rays ionize the D-region of the ionosphere, absorbing High Frequency (HF) radio waves on the sunlit hemisphere.
+Key Findings:
+1. Sunlit hemisphere ground stations experience up to 90% signal loss during M5+ and X-class flares.
+2. Blackout duration perfectly mirrors the X-ray flare curve (typically 20-60 minutes).
+3. Mitigation Directive: Immediately route critical satellite telemetry through relay networks on the night-side hemisphere. Delay non-essential command uplink until flux levels drop below M1 class.
+
+Title: Cascading Spacecraft Anomalies and Multi-Satellite Correlation
+Authors: Spacecraft Health Monitoring Division, ISRO
+Abstract:
+Analysis of correlated anomaly events across the ISRO fleet (Chandrayaan-3, INSAT-3DR, NVS-01). Identifying cascading failures triggered by systemic space weather events rather than isolated hardware degradation.
+Key Findings:
+1. If two or more spacecraft report attitude control errors, star tracker blinding, or unexpected reboots within a 15-minute window, it is classified as a Cascading Space Weather Event.
+2. These events are almost exclusively tied to sudden high-density solar wind shockwaves arriving at Earth.
+3. Mitigation Directive: Halt all scheduled orbital maneuvers. Engage autonomous star-tracker recovery loops and cross-verify attitude using gyroscopes only.

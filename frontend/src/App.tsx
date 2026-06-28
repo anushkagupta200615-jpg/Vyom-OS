@@ -10,6 +10,7 @@ import ForecastPanel from './components/ForecastPanel';
 import SatelliteMatrix from './components/SatelliteMatrix';
 import SolarChatbot from './components/SolarChatbot';
 import NavICImpact from './components/NavICImpact';
+import TelemetryGauges from './components/TelemetryGauges';
 import AlertBanner from './components/AlertBanner';
 import TickerTape from './components/TickerTape';
 import CountdownTimers from './components/CountdownTimers';
@@ -49,9 +50,16 @@ function App() {
   const fluxValue = currentFlux?.flux || 1e-8;
   const alertState = useAlertState(flareClass, fluxValue);
 
-  // Red Alert Siren (Web Audio API)
+  // Red Alert Siren & Voice (Web Audio API + Speech)
   useEffect(() => {
     if (alertState.level === 'ALERT') {
+      if ('speechSynthesis' in window) {
+        const msg = new SpeechSynthesisUtterance(`WARNING. Critical ${flareClass}-class solar event detected. Mitigation protocol initiated.`);
+        msg.rate = 0.9;
+        msg.pitch = 0.8;
+        window.speechSynthesis.speak(msg);
+      }
+
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       
       const playBeep = () => {
@@ -78,9 +86,12 @@ function App() {
       return () => {
         clearInterval(interval);
         audioCtx.close().catch(console.error);
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
       };
     }
-  }, [alertState.level]);
+  }, [alertState.level, flareClass]);
 
   const forecastData = forecast ? Array.from({ length: 6 }, (_, i) => {
     const time = new Date();
@@ -188,6 +199,7 @@ function App() {
               {currentFlux ? (
                 <>
                   <SatelliteMatrix flareClass={flareClass} fluxValue={fluxValue} alertLevel={alertState.level} />
+                  <TelemetryGauges satelliteName="Aditya-L1" isAlert={alertState.level === 'ALERT'} />
                   <NavICImpact flareClass={flareClass} fluxValue={fluxValue} />
                 </>
               ) : (

@@ -42,6 +42,45 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
     }
   }, []);
 
+  const [activeTles, setActiveTles] = useState<any>(TLE_DATA);
+
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [heatmapData, setHeatmapData] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Generate static historical anomaly heatmap data (simulated 30-day density)
+    const hData = [
+      // South Atlantic Anomaly (High density)
+      ...Array(150).fill(0).map(() => ({ lat: -25 + (Math.random()*20 - 10), lng: -45 + (Math.random()*40 - 20), weight: Math.random() * 2 })),
+      // Polar Regions (Medium density)
+      ...Array(80).fill(0).map(() => ({ lat: 75 + (Math.random()*10 - 5), lng: Math.random()*360 - 180, weight: Math.random() })),
+      ...Array(80).fill(0).map(() => ({ lat: -75 + (Math.random()*10 - 5), lng: Math.random()*360 - 180, weight: Math.random() })),
+      // Random sporadic
+      ...Array(100).fill(0).map(() => ({ lat: Math.random()*180 - 90, lng: Math.random()*360 - 180, weight: Math.random() * 0.5 }))
+    ];
+    setHeatmapData(hData);
+  }, []);
+
+  useEffect(() => {
+    const fetchTles = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tle`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Object.keys(data).length > 0) {
+            setActiveTles(data);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch live TLEs, using static fallback.');
+      }
+    };
+    fetchTles();
+    const interval = setInterval(fetchTles, 3600000); // 1 hour
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const updatePositions = () => {
       const now = new Date();
@@ -102,7 +141,7 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
       const newSatData: any[] = [];
       const newPathsData: any[] = [];
 
-      Object.entries(TLE_DATA).forEach(([name, tle]) => {
+      Object.entries(activeTles).forEach(([name, tle]) => {
         const satrec = satellite.twoline2satrec(tle[0], tle[1]);
         const positionAndVelocity = satellite.propagate(satrec, now);
         const positionEci = positionAndVelocity.position;
@@ -147,7 +186,7 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
     updatePositions();
     const interval = setInterval(updatePositions, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeTles]);
 
   // Trigger CME Propagation Arc
   useEffect(() => {
@@ -181,6 +220,28 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
     activeRings.push({ lat: sunPos.lat, lng: sunPos.lng, type: 'blackout' });
   }
 
+  // Anomaly Correlation Arcs (Connect affected satellites during high alert)
+  const correlationArcs = [];
+  if (isHighAlert && satData.length >= 2) {
+    for (let i = 0; i < satData.length - 1; i++) {
+      correlationArcs.push({
+        startLat: satData[i].lat,
+        startLng: satData[i].lng,
+        endLat: satData[i+1].lat,
+        endLng: satData[i+1].lng,
+        color: 'rgba(249, 115, 22, 0.8)' // Orange
+      });
+    }
+    // Close the loop
+    correlationArcs.push({
+      startLat: satData[satData.length-1].lat,
+      startLng: satData[satData.length-1].lng,
+      endLat: satData[0].lat,
+      endLng: satData[0].lng,
+      color: 'rgba(249, 115, 22, 0.8)'
+    });
+  }
+
   const customLayerData = [{ lat: sunPos.lat, lng: sunPos.lng, alt: 3 }];
 
   return (
@@ -192,12 +253,32 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
         backgroundPosition: 'center'
       }}
     >
+        {/* Heatmap Toggle */}
+        <div className="absolute top-4 right-4 z-10 flex gap-2">
+          <button 
+            onClick={() => setShowHeatmap(!showHeatmap)}
+            className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${showHeatmap ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-400 border border-gray-600 hover:text-white'}`}
+          >
+            {showHeatmap ? 'Heatmap: ON' : 'Heatmap: OFF'}
+          </button>
+        </div>
+
       <Globe
         ref={globeEl}
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         backgroundColor="rgba(0,0,0,0)"
         
+        // Heatmap
+        hexBinPointsData={showHeatmap ? heatmapData : []}
+        hexBinPointWeight="weight"
+        hexAltitude={(d: any) => d.sumWeight * 0.005}
+        hexBinResolution={4}
+        hexTopColor={(d: any) => d.sumWeight > 5 ? '#ef4444' : '#f59e0b'}
+        hexSideColor={() => 'rgba(0,0,0,0)'}
+        hexBinMerge={true}
+        hexTransitionDuration={1000}
+
         // Satellites
         pointsData={satData}
         pointLat="lat"
@@ -235,8 +316,8 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
         labelColor={() => isHighAlert ? '#ef4444' : '#60a5fa'}
         labelResolution={2}
         
-        // CME Propagation Arcs
-        arcsData={cmeArcs}
+        // CME Propagation & Correlation Arcs
+        arcsData={[...cmeArcs, ...correlationArcs]}
         arcStartLat="startLat"
         arcStartLng="startLng"
         arcEndLat="endLat"

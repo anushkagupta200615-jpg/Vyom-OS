@@ -11,7 +11,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 
 load_dotenv()
-from data_feeds import fetch_current_flux, fetch_flux_history, fetch_flare_events
+from data_feeds import fetch_current_flux, fetch_flux_history, fetch_flare_events, fetch_nasa_donki_flares, fetch_isro_tles
 
 warnings.filterwarnings('ignore')
 
@@ -154,6 +154,14 @@ async def get_flux_history(hours: int = 24):
 @app.get("/api/flare-events")
 async def get_flare_events(days: int = 7):
     return await fetch_flare_events(days=days)
+
+@app.get("/api/donki-events")
+async def get_donki_events():
+    return await fetch_nasa_donki_flares()
+
+@app.get("/api/tle")
+async def get_tle_data():
+    return await fetch_isro_tles()
 
 from ml.forecaster import predict_next_6h
 
