@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from 'react';
 import Globe from 'react-globe.gl';
 import * as satellite from 'satellite.js';
 import * as THREE from 'three';
-import SunCalc from 'suncalc';
 
 interface ISROGlobeProps {
   flareClass: string;
@@ -31,6 +30,7 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
   const [cmeArcs, setCmeArcs] = useState<any[]>([]);
   const [terminatorPath, setTerminatorPath] = useState<any[]>([]);
   const [cmeArrivalCount, setCmeArrivalCount] = useState<number>(0);
+  const [sunPos, setSunPos] = useState({ lat: 0, lng: 0 });
   
   const isHighAlert = flareClass === 'M' || flareClass === 'X';
 
@@ -42,27 +42,62 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
     }
   }, []);
 
-  // Sun geometry
-  const sunData = [{ lat: 0, lng: -90, alt: 5 }];
-
   useEffect(() => {
     const updatePositions = () => {
       const now = new Date();
       
-      // Calculate Subsolar Point for Terminator Line
-      const sunPos = SunCalc.getPosition(now, 0, 0);
-      // Generate great circle for terminator
+      // Calculate Subsolar Point
+      const hours = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds() / 3600;
+      const startOfYear = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+      const dayOfYear = (now.getTime() - startOfYear.getTime()) / 86400000;
+      const w = (2 * Math.PI / 365.24) * (dayOfYear + hours / 24 - 1);
+      
+      // Declination
+      const decl = 0.39637 * Math.sin(w) + 0.0042 * Math.sin(2*w) + 0.0026 * Math.sin(3*w);
+      const lat_s = decl; 
+      
+      // Equation of time
+      const eqTime = -7.66 * Math.sin(w) - 9.87 * Math.sin(2 * w + 3.49); 
+      const trueSolarTime = hours * 60 + eqTime / 60; 
+      let lng_s = (12 - trueSolarTime) * 15; 
+      
+      // Normalize lng
+      if (lng_s > 180) lng_s -= 360;
+      if (lng_s < -180) lng_s += 360;
+      
+      setSunPos({ lat: lat_s * 180 / Math.PI, lng: lng_s });
+
+      const lng_s_rad = lng_s * Math.PI / 180;
+      
+      const Sx = Math.cos(lat_s) * Math.cos(lng_s_rad);
+      const Sy = Math.cos(lat_s) * Math.sin(lng_s_rad);
+      const Sz = Math.sin(lat_s);
+      
+      const Ulen = Math.sqrt(Sy*Sy + Sx*Sx);
+      const Ux = -Sy / Ulen;
+      const Uy = Sx / Ulen;
+      const Uz = 0;
+      
+      const Vx = -Sz * Uy;
+      const Vy = Sz * Ux;
+      const Vz = Sx * Uy - Sy * Ux;
+      
       const termPath = [];
-      const subsolarLng = (sunPos.azimuth * 180) / Math.PI;
-      const subsolarLat = (sunPos.altitude * 180) / Math.PI;
-      for (let i = 0; i <= 360; i += 5) {
-        termPath.push([
-          Math.sin((i * Math.PI) / 180) * 90, // Approx circle offset
-          subsolarLng + 90 + i,
-          0.005
-        ]);
+      // Generate 180 points for a smooth great circle
+      for(let i=0; i<=180; i++) {
+        const t = i * 2 * Math.PI / 180;
+        const px = Ux * Math.cos(t) + Vx * Math.sin(t);
+        const py = Uy * Math.cos(t) + Vy * Math.sin(t);
+        const pz = Uz * Math.cos(t) + Vz * Math.sin(t);
+        
+        const lat = Math.asin(pz) * 180 / Math.PI;
+        const lng = Math.atan2(py, px) * 180 / Math.PI;
+        termPath.push([lat, lng, 0.002]); // slightly above surface
       }
-      setTerminatorPath([{ path: termPath }]);
+      // Add first point again to close the loop
+      termPath.push(termPath[0]);
+      
+      setTerminatorPath([{ name: 'terminator', path: termPath }]);
 
       const newSatData: any[] = [];
       const newPathsData: any[] = [];
@@ -117,37 +152,51 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
   // Trigger CME Propagation Arc
   useEffect(() => {
     if (isHighAlert) {
-      // Create arc from Sun (-90, 0) to Earth center
       const arcColor = flareClass === 'X' ? '#ef4444' : '#f97316';
       setCmeArcs([{
-        startLat: 0,
-        startLng: -90,
+        startLat: sunPos.lat,
+        startLng: sunPos.lng,
         endLat: 20, // Aim towards India
         endLng: 78,
         color: arcColor
       }]);
       
-      // Simulate arrival after transit time (scaled down for demo: 3 seconds)
       const timer = setTimeout(() => {
         setCmeArrivalCount(prev => prev + 1);
-        setCmeArcs([]); // Remove arc
+        setCmeArcs([]); 
       }, 3000);
       
       return () => clearTimeout(timer);
     } else {
       setCmeArcs([]);
     }
-  }, [isHighAlert, flareClass]);
+  }, [isHighAlert, flareClass, sunPos]);
 
-  const customLayerData = [...sunData];
+  // Combine Rings for Aurora and HF Blackout
+  const activeRings = [];
+  if (cmeArrivalCount > 0) {
+    activeRings.push({ lat: 70, lng: 0, type: 'aurora' }, { lat: -70, lng: 0, type: 'aurora' });
+  }
+  if (isHighAlert) {
+    activeRings.push({ lat: sunPos.lat, lng: sunPos.lng, type: 'blackout' });
+  }
+
+  const customLayerData = [{ lat: sunPos.lat, lng: sunPos.lng, alt: 3 }];
 
   return (
-    <div className="relative w-full h-full bg-black rounded-xl overflow-hidden flex items-center justify-center">
+    <div 
+      className="relative w-full h-full rounded-xl overflow-hidden flex items-center justify-center bg-black"
+      style={{
+        backgroundImage: 'url("//unpkg.com/three-globe/example/img/night-sky.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
       <Globe
         ref={globeEl}
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-        backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
+        backgroundColor="rgba(0,0,0,0)"
         
         // Satellites
         pointsData={satData}
@@ -170,10 +219,10 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
         pathPointLat={(p: any) => p[0]}
         pathPointLng={(p: any) => p[1]}
         pathPointAlt={(p: any) => p[2]}
-        pathColor={(d: any) => d.name ? 'rgba(255,255,255,0.2)' : 'rgba(255,230,0,0.4)'} // yellow for terminator
-        pathDashLength={(d: any) => d.name ? 0.01 : 0}
-        pathDashGap={(d: any) => d.name ? 0.005 : 0}
-        pathDashAnimateTime={(d: any) => d.name ? 100000 : 0}
+        pathColor={(d: any) => d.name === 'terminator' ? 'rgba(255,165,0,0.6)' : 'rgba(56, 189, 248, 0.3)'}
+        pathDashLength={(d: any) => d.name === 'terminator' ? 0.02 : 0.01}
+        pathDashGap={(d: any) => d.name === 'terminator' ? 0.01 : 0.005}
+        pathDashAnimateTime={(d: any) => d.name === 'terminator' ? 4000 : 100000}
         
         // Satellite Labels
         labelsData={satData}
@@ -196,38 +245,36 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
         arcDashLength={0.4}
         arcDashGap={4}
         arcDashInitialGap={() => Math.random() * 4}
-        arcDashAnimateTime={3000} // Speed of CME
-        arcAltitude={2}
+        arcDashAnimateTime={3000} 
+        arcAltitude={1.5}
         arcStroke={2}
         
-        // Aurora Ring on CME Arrival
-        ringsData={cmeArrivalCount > 0 ? [{ lat: 60, lng: 0 }, { lat: -60, lng: 0 }] : []}
+        // Aurora & HF Radio Blackout Rings
+        ringsData={activeRings}
         ringLat="lat"
         ringLng="lng"
-        ringColor={() => '#10b981'} // Emerald green aurora
-        ringMaxRadius={25}
-        ringPropagationSpeed={3}
-        ringRepeatPeriod={800}
+        ringColor={(d: any) => d.type === 'aurora' ? '#10b981' : 'rgba(239, 68, 68, 0.6)'} 
+        ringMaxRadius={(d: any) => d.type === 'aurora' ? 25 : 85}
+        ringPropagationSpeed={(d: any) => d.type === 'aurora' ? 3 : 8}
+        ringRepeatPeriod={(d: any) => d.type === 'aurora' ? 800 : 2000}
 
         // Custom Sun geometry
         customLayerData={customLayerData}
         customThreeObject={(d: any) => {
           const group = new THREE.Group();
           
-          // Sun mesh
-          const geometry = new THREE.SphereGeometry(0.3, 32, 32);
+          const geometry = new THREE.SphereGeometry(0.2, 32, 32);
           const material = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
           const sphere = new THREE.Mesh(geometry, material);
           group.add(sphere);
 
-          // Glow effect
           const glowMaterial = new THREE.MeshBasicMaterial({ 
             color: 0xff4400,
             transparent: true,
             opacity: 0.3,
             blending: THREE.AdditiveBlending
           });
-          const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(0.4, 32, 32), glowMaterial);
+          const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 32), glowMaterial);
           group.add(glowSphere);
 
           return group;
