@@ -11,19 +11,38 @@
 Forecasting and/or Nowcasting of Solar Flares using combined Soft and Hard X-ray
 data from Aditya-L1 [BAH 2026 PS-XX]
 
-## Key Features
+## Key Features 🚀
 
-- Real-time GOES/Aditya-L1 X-ray flux monitoring with NOAA class classification
-- ML Flare Nowcasting: 6-hour prediction with 73% F1 score (GradientBoosting)
-- RAG-powered Space Weather Advisory generation using Gemini 1.5 Flash
-- Live ISRO satellite orbital tracks with real-time solar threat assessment
-- ISRO Satellite Impact Matrix: Cartosat-3, RISAT-2BR1, NavIC, Chandrayaan-2
+- **Live 3D Digital Twin:** Real-time WebGL globe rendering ISRO satellites using live Celestrak TLE data (Aditya-L1, Chandrayaan-3, RESOURCESAT-2A, etc.).
+- **Live Space Weather Monitoring:** Polling the NASA DONKI API to trigger simulated anomalies based on real-world Coronal Mass Ejections (CMEs) and Solar Flares.
+- **Autonomous RAG Mitigation:** ChromaDB vector store loaded with actual ISRO Space Weather Advisory Protocols to ground LLM mitigation strategies in reality.
+- **On-Device Edge Intelligence:** Zero cloud-dependency AI mitigation powered by a local FLAN-T5-small model.
+- **Predictive Severity ML:** Logistic-growth based forecasting simulating anomaly spread and severity 72-hours into the future.
+- **Multi-Satellite Correlation Engine:** Automatically draws pulsing connection arcs between satellites if a systemic space weather event hits multiple nodes within 15 minutes.
+- **Data-Science Heatmaps:** Toggleable geographic heatmap displaying historical anomaly densities (e.g., highlighting the South Atlantic Anomaly).
+- **Web Speech Voice Alerts:** Browser-native auditory warnings spoken aloud when critical anomalies are detected.
+- **Telemetry Gauges:** Simulated real-time sensor dashboards tracking satellite Battery %, Solar Output (W), Temperature, and Signal Downgrade.
 
-## Tech Stack
+## Tech Stack 🛠️
 
-React + TypeScript | FastAPI | LangChain | ChromaDB | Gemini 1.5 Flash | satellite.js
+**Frontend (Command Center)**
+- **Framework:** React 18, TypeScript, Vite
+- **Styling:** Tailwind CSS (Dark-mode Glassmorphism)
+- **3D Visualization:** `react-globe.gl`, `three.js`
+- **Charts & Data Viz:** `recharts`, `d3`
+- **Orbital Propagation:** `satellite.js`
 
-## Data Sources
+**Backend (Ground Station API)**
+- **Framework:** FastAPI, Python 3.10+, Uvicorn
+- **Data Validation:** Pydantic
+- **Live Feeds:** `httpx` (NASA DONKI, Celestrak, NOAA GOES)
+
+**AI & Machine Learning**
+- **Vector Database:** ChromaDB
+- **Embeddings:** HuggingFace `sentence-transformers` (`all-MiniLM-L6-v2`)
+- **Local LLM:** Google `flan-t5-small`
+- **Generative AI:** Gemini 3.5 Flash (for advisory chatbot and reporting)
+- **Forecasting:** `scipy`, `numpy`, `scikit-learn`
 
 GOES X-ray Flux (NOAA) | NASA DONKI | ISSDC Aditya-L1 Archive | Celestrak TLE
 
