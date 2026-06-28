@@ -46,7 +46,7 @@ def get_embedding(text: str) -> list[float]:
     return [0.0] * 384
 
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY", ""))
-gemini = genai.GenerativeModel("gemini-1.5-flash")
+gemini = genai.GenerativeModel("gemini-3.5-flash")
 
 def generate_advisory(anomaly_data: dict, rag_context: str) -> str:
     prompt = f"""You are VyomOS, ISRO Mission Control AI for solar weather.
@@ -191,6 +191,31 @@ Live Flux Context: {chat.current_flux_context}
         return {"response": response.text}
     except Exception as e:
         return {"response": f"Gemini API Error: {e}"}
+
+class AdvisoryRequest(BaseModel):
+    current_flux: dict = {}
+
+@app.post("/api/advisory-report")
+def generate_advisory_report(req: AdvisoryRequest):
+    current_flux = req.current_flux
+    query_emb = get_embedding("Space weather advisory")
+    results = collection.query(query_embeddings=[query_emb], n_results=3)
+    context = "\n".join([doc for doc in results['documents'][0]]) if results['documents'] else ""
+    prompt = f"""You are VyomOS, ISRO Mission Control AI.
+Generate a structured Space Weather Advisory for the current solar state.
+Current Flux Data: {current_flux}
+Context: {context}
+Include: 
+1. NOAA Flare Classification
+2. Threat Level
+3. Affected ISRO Satellites and expected impact
+4. Recommended Mission Control Actions.
+Return it as plain text without markdown formatting so it can be printed in a PDF."""
+    try:
+        response = gemini.generate_content(prompt)
+        return {"advisory": response.text}
+    except Exception as e:
+        return {"advisory": f"Error generating advisory: {e}"}
 
 if __name__ == "__main__":
     import uvicorn
