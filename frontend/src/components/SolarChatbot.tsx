@@ -100,23 +100,47 @@ const SolarChatbot: React.FC<{ currentFluxContext: any }> = ({ currentFluxContex
             )}
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-              {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] rounded-xl p-3 text-sm ${
-                    m.role === 'user'
-                      ? 'bg-blue-600 text-white rounded-br-none'
-                      : 'bg-gray-800 text-gray-200 rounded-bl-none border border-gray-700'
-                  }`}>
-                    {m.content}
-                    {m.role === 'ai' && i > 0 && (
-                      <div className="mt-2 pt-2 border-t border-gray-700 flex gap-1 flex-wrap">
-                        <span className="text-[9px] bg-gray-900 px-1 py-0.5 rounded text-gray-400">[NASA DONKI]</span>
-                        <span className="text-[9px] bg-gray-900 px-1 py-0.5 rounded text-gray-400">[SWPC Bulletin]</span>
+              {messages.map((m, i) => {
+                const renderMessageContent = (content: string) => {
+                  const thinkingMatch = content.match(/<thinking>([\s\S]*?)<\/thinking>/);
+                  if (thinkingMatch) {
+                    const thinkingContent = thinkingMatch[1].trim();
+                    const restContent = content.replace(/<thinking>[\s\S]*?<\/thinking>/, '').trim();
+                    return (
+                      <div className="flex flex-col gap-2">
+                        <details className="bg-gray-900/50 rounded-lg border border-gray-700/50 overflow-hidden">
+                          <summary className="text-xs text-orange-400 font-mono p-2 cursor-pointer hover:bg-gray-800 transition-colors">
+                             ⚙️ Spatial Analysis Reasoning (CoT)
+                          </summary>
+                          <div className="p-3 text-[11px] text-gray-400 font-mono whitespace-pre-wrap border-t border-gray-700/50 bg-black/40">
+                            {thinkingContent}
+                          </div>
+                        </details>
+                        <div>{restContent}</div>
                       </div>
-                    )}
+                    );
+                  }
+                  return <div>{content}</div>;
+                };
+
+                return (
+                  <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] rounded-xl p-3 text-sm ${
+                      m.role === 'user'
+                        ? 'bg-blue-600 text-white rounded-br-none'
+                        : 'bg-gray-800 text-gray-200 rounded-bl-none border border-gray-700'
+                    }`}>
+                      {renderMessageContent(m.content)}
+                      {m.role === 'ai' && i > 0 && (
+                        <div className="mt-2 pt-2 border-t border-gray-700 flex gap-1 flex-wrap">
+                          <span className="text-[9px] bg-gray-900 px-1 py-0.5 rounded text-gray-400">[NASA DONKI]</span>
+                          <span className="text-[9px] bg-gray-900 px-1 py-0.5 rounded text-gray-400">[ISRO RAG Context]</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {isTyping && (
                 <div className="flex justify-start">
                   <div className="bg-gray-800 text-gray-400 rounded-xl rounded-bl-none p-3 border border-gray-700 text-sm flex gap-1">

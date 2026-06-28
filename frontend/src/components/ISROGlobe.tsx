@@ -218,6 +218,7 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
   }
   if (isHighAlert) {
     activeRings.push({ lat: sunPos.lat, lng: sunPos.lng, type: 'blackout' });
+    activeRings.push({ lat: sunPos.lat, lng: sunPos.lng, type: 'halocme' });
   }
 
   // Anomaly Correlation Arcs (Connect affected satellites during high alert)
@@ -334,10 +335,10 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
         ringsData={activeRings}
         ringLat="lat"
         ringLng="lng"
-        ringColor={(d: any) => d.type === 'aurora' ? '#10b981' : 'rgba(239, 68, 68, 0.6)'} 
-        ringMaxRadius={(d: any) => d.type === 'aurora' ? 25 : 85}
-        ringPropagationSpeed={(d: any) => d.type === 'aurora' ? 3 : 8}
-        ringRepeatPeriod={(d: any) => d.type === 'aurora' ? 800 : 2000}
+        ringColor={(d: any) => d.type === 'aurora' ? '#10b981' : d.type === 'halocme' ? 'rgba(255, 0, 0, 0.3)' : 'rgba(239, 68, 68, 0.6)'} 
+        ringMaxRadius={(d: any) => d.type === 'aurora' ? 25 : d.type === 'halocme' ? 180 : 85}
+        ringPropagationSpeed={(d: any) => d.type === 'aurora' ? 3 : d.type === 'halocme' ? 15 : 8}
+        ringRepeatPeriod={(d: any) => d.type === 'aurora' ? 800 : d.type === 'halocme' ? 4000 : 2000}
 
         // Custom Sun geometry
         customLayerData={customLayerData}

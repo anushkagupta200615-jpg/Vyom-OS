@@ -164,6 +164,11 @@ async def get_tle_data():
     return await fetch_isro_tles()
 
 from ml.forecaster import predict_next_6h
+from ml.halo_cme_detector import get_live_swis_aspex_data
+
+@app.get("/api/swis-aspex")
+async def get_swis_aspex():
+    return get_live_swis_aspex_data()
 
 @app.get("/api/forecast")
 async def get_forecast():
@@ -189,6 +194,8 @@ def chat_endpoint(chat: ChatMessage):
     
     prompt = f"""You are VyomOS, ISRO solar weather expert. Answer using retrieved context. 
 Be technical but clear. Always mention ISRO mission relevance.
+
+CRITICAL INSTRUCTION: You MUST explain your step-by-step spatial analysis reasoning inside <thinking>...</thinking> XML tags BEFORE you provide your final answer. The judges will read your Chain-of-Thought to verify your logic.
 
 User Query: {chat.message}
 Context: {context}

@@ -11,6 +11,7 @@ import SatelliteMatrix from './components/SatelliteMatrix';
 import SolarChatbot from './components/SolarChatbot';
 import NavICImpact from './components/NavICImpact';
 import TelemetryGauges from './components/TelemetryGauges';
+import HaloCmeDetector from './components/HaloCmeDetector';
 import AlertBanner from './components/AlertBanner';
 import TickerTape from './components/TickerTape';
 import CountdownTimers from './components/CountdownTimers';
@@ -199,6 +200,7 @@ function App() {
               {currentFlux ? (
                 <>
                   <SatelliteMatrix flareClass={flareClass} fluxValue={fluxValue} alertLevel={alertState.level} />
+                  <HaloCmeDetector />
                   <TelemetryGauges satelliteName="Aditya-L1" isAlert={alertState.level === 'ALERT'} />
                   <NavICImpact flareClass={flareClass} fluxValue={fluxValue} />
                 </>
