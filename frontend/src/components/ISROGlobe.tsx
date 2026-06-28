@@ -35,11 +35,26 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
   const isHighAlert = flareClass === 'M' || flareClass === 'X';
 
   useEffect(() => {
+    let animationFrameId: number;
+    
     if (globeEl.current) {
       globeEl.current.controls().autoRotate = true;
       globeEl.current.controls().autoRotateSpeed = 0.5;
       globeEl.current.pointOfView({ altitude: 2.5, lat: 20, lng: 78 }, 2000);
+      
+      // Force controls update loop for continuous rotation
+      const animate = () => {
+        if (globeEl.current && globeEl.current.controls()) {
+           globeEl.current.controls().update();
+        }
+        animationFrameId = requestAnimationFrame(animate);
+      };
+      animate();
     }
+    
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
   }, []);
 
   const [activeTles, setActiveTles] = useState<any>(TLE_DATA);
