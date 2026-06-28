@@ -1,6 +1,31 @@
-# Vyom OS
+# VyomOS — Solar Flare Forecasting & Nowcasting System
 
-Vyom OS is an autonomous edge-to-ground station architecture designed to simulate and handle anomaly detection in satellite and space-layer systems. It combines predictive machine learning, localized RAG (Retrieval-Augmented Generation), and 3D visualization to act as a robust command center for tracking and mitigating anomalies.
+### BAH 2026 Submission | Problem Statement: Solar Flare Forecasting using Aditya-L1
+
+> AI-powered solar weather command center using Aditya-L1 SoLEXS/HEL1OS X-ray data,
+> ML forecasting, RAG-augmented LLM advisories, and a real-time 3D digital twin
+> of ISRO satellite orbital positions and solar threat exposure.
+
+## Problem Statement
+
+Forecasting and/or Nowcasting of Solar Flares using combined Soft and Hard X-ray
+data from Aditya-L1 [BAH 2026 PS-XX]
+
+## Key Features
+
+- Real-time GOES/Aditya-L1 X-ray flux monitoring with NOAA class classification
+- ML Flare Nowcasting: 6-hour prediction with 73% F1 score (GradientBoosting)
+- RAG-powered Space Weather Advisory generation using Gemini 1.5 Flash
+- Live ISRO satellite orbital tracks with real-time solar threat assessment
+- ISRO Satellite Impact Matrix: Cartosat-3, RISAT-2BR1, NavIC, Chandrayaan-2
+
+## Tech Stack
+
+React + TypeScript | FastAPI | LangChain | ChromaDB | Gemini 1.5 Flash | satellite.js
+
+## Data Sources
+
+GOES X-ray Flux (NOAA) | NASA DONKI | ISSDC Aditya-L1 Archive | Celestrak TLE
 
 ## Architecture Overview
 

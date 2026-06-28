@@ -7,6 +7,11 @@ from pydantic import BaseModel
 import chromadb
 import numpy as np
 import warnings
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+load_dotenv()
+from data_feeds import fetch_current_flux, fetch_flux_history, fetch_flare_events
 
 warnings.filterwarnings('ignore')
 
@@ -40,16 +45,25 @@ def get_embedding(text: str) -> list[float]:
     # Fallback to a zero vector to prevent crashing
     return [0.0] * 384
 
-def generate_text(prompt: str) -> str:
-    api_url = "https://api-inference.huggingface.co/models/google/flan-t5-small"
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY", ""))
+gemini = genai.GenerativeModel("gemini-1.5-flash")
+
+def generate_advisory(anomaly_data: dict, rag_context: str) -> str:
+    prompt = f"""You are VyomOS, ISRO Mission Control AI for solar weather.
+Analyze this solar event: {anomaly_data}
+Retrieved historical context: {rag_context}
+Generate a structured Space Weather Advisory with:
+1) NOAA Flare Classification (A/B/C/M/X)
+2) Threat Level (LOW/MODERATE/HIGH/EXTREME)
+3) Affected ISRO Satellites and expected impact
+4) Recommended Mission Control Actions
+5) Predicted duration and flux peak time
+Be technical, specific, and cite the context sources."""
     try:
-        response = httpx.post(api_url, headers=HEADERS, json={"inputs": prompt, "parameters": {"max_length": 150}}, timeout=15.0)
-        if response.status_code == 200:
-            return response.json()[0].get("generated_text", "Failed to parse API response.")
-        else:
-            return f"API Error: {response.status_code} - {response.text}"
+        response = gemini.generate_content(prompt)
+        return response.text
     except Exception as e:
-        return f"Local Generation Error: Failed to reach Hugging Face API ({e})."
+        return f"Gemini API Error: {e}"
 
 print("Ingesting knowledge base...")
 try:
@@ -101,12 +115,7 @@ def receive_edge_data(report: AnomalyReport):
     context = results['documents'][0][0] if results['documents'] else "No context found."
 
     # 3. LLM Generation
-    prompt = f"Context: {context[:400]}\nQuestion: Based on this, provide a concise mitigation strategy for a {report.type} anomaly."
-    
-    try:
-        llm_output = generate_text(prompt)
-    except Exception as e:
-        llm_output = f"Local AI Generation Error: {e}"
+    llm_output = generate_advisory(report.dict(), context)
 
     generated_report = f"""
 [AUTONOMOUS AI REPORT]
@@ -133,6 +142,55 @@ def get_dashboard_status():
         "bandwidth_saved_mb": round(random.uniform(500, 1500), 2),
         "system_health": "Optimal"
     }
+
+@app.get("/api/current-flux")
+async def get_current_flux():
+    return await fetch_current_flux()
+
+@app.get("/api/flux-history")
+async def get_flux_history(hours: int = 24):
+    return await fetch_flux_history(hours=hours)
+
+@app.get("/api/flare-events")
+async def get_flare_events(days: int = 7):
+    return await fetch_flare_events(days=days)
+
+from ml.forecaster import predict_next_6h
+
+@app.get("/api/forecast")
+async def get_forecast():
+    history = await fetch_flux_history(hours=24)
+    if not history:
+        return {"error": "Failed to fetch history data"}
+    flux_series = [x["flux"] for x in history]
+    return predict_next_6h(flux_series)
+
+class ChatMessage(BaseModel):
+    message: str
+    current_flux_context: dict = {}
+
+@app.post("/api/chat")
+def chat_endpoint(chat: ChatMessage):
+    # Embed message, retrieve from ChromaDB, pass to Gemini
+    query_emb = get_embedding(chat.message)
+    results = collection.query(
+        query_embeddings=[query_emb],
+        n_results=3
+    )
+    context = "\n".join([doc for doc in results['documents'][0]]) if results['documents'] else ""
+    
+    prompt = f"""You are VyomOS, ISRO solar weather expert. Answer using retrieved context. 
+Be technical but clear. Always mention ISRO mission relevance.
+
+User Query: {chat.message}
+Context: {context}
+Live Flux Context: {chat.current_flux_context}
+"""
+    try:
+        response = gemini.generate_content(prompt)
+        return {"response": response.text}
+    except Exception as e:
+        return {"response": f"Gemini API Error: {e}"}
 
 if __name__ == "__main__":
     import uvicorn

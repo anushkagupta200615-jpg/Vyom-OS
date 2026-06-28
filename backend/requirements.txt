@@ -4,3 +4,10 @@ chromadb
 pydantic
 numpy
 httpx
+google-generativeai==0.8.0
+langchain
+sentence-transformers
+pandas
+scikit-learn
+joblib
+python-dotenv
