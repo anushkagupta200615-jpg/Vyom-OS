@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Globe from 'react-globe.gl';
 import * as satellite from 'satellite.js';
+import * as THREE from 'three';
+import SunCalc from 'suncalc';
 
 interface ISROGlobeProps {
   flareClass: string;
@@ -26,7 +28,9 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
   const globeEl = useRef<any>(null);
   const [satData, setSatData] = useState<any[]>([]);
   const [pathsData, setPathsData] = useState<any[]>([]);
-  const [ringsData, setRingsData] = useState<any[]>([]);
+  const [cmeArcs, setCmeArcs] = useState<any[]>([]);
+  const [terminatorPath, setTerminatorPath] = useState<any[]>([]);
+  const [cmeArrivalCount, setCmeArrivalCount] = useState<number>(0);
   
   const isHighAlert = flareClass === 'M' || flareClass === 'X';
 
@@ -34,13 +38,32 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
     if (globeEl.current) {
       globeEl.current.controls().autoRotate = true;
       globeEl.current.controls().autoRotateSpeed = 0.5;
-      globeEl.current.pointOfView({ altitude: 2.5 }, 4000);
+      globeEl.current.pointOfView({ altitude: 2.5, lat: 20, lng: 78 }, 2000);
     }
   }, []);
+
+  // Sun geometry
+  const sunData = [{ lat: 0, lng: -90, alt: 5 }];
 
   useEffect(() => {
     const updatePositions = () => {
       const now = new Date();
+      
+      // Calculate Subsolar Point for Terminator Line
+      const sunPos = SunCalc.getPosition(now, 0, 0);
+      // Generate great circle for terminator
+      const termPath = [];
+      const subsolarLng = (sunPos.azimuth * 180) / Math.PI;
+      const subsolarLat = (sunPos.altitude * 180) / Math.PI;
+      for (let i = 0; i <= 360; i += 5) {
+        termPath.push([
+          Math.sin((i * Math.PI) / 180) * 90, // Approx circle offset
+          subsolarLng + 90 + i,
+          0.005
+        ]);
+      }
+      setTerminatorPath([{ path: termPath }]);
+
       const newSatData: any[] = [];
       const newPathsData: any[] = [];
 
@@ -60,11 +83,10 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
             name,
             lat: latitude,
             lng: longitude,
-            alt: height / 6371, // normalized to earth radius
+            alt: height / 6371,
             heightKm: Math.round(height)
           });
           
-          // Generate path (last 45 mins)
           const pathCoords: any[] = [];
           for(let i=45; i>=0; i-=5) {
              const t = new Date(now.getTime() - i * 60000);
@@ -85,36 +107,49 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
       
       setSatData(newSatData);
       setPathsData(newPathsData);
-      
-      // If high alert, show a simulated flare cone from sun
-      if (isHighAlert) {
-         const hours = now.getUTCHours() + now.getUTCMinutes()/60;
-         const subsolarLng = 180 - (hours * 15);
-         setRingsData([{
-             lat: 0,
-             lng: subsolarLng,
-             maxR: 90,
-             propagationSpeed: 5,
-             repeatPeriod: 1000
-         }]);
-      } else {
-         setRingsData([]);
-      }
     };
 
     updatePositions();
     const interval = setInterval(updatePositions, 10000);
     return () => clearInterval(interval);
-  }, [isHighAlert]);
+  }, []);
+
+  // Trigger CME Propagation Arc
+  useEffect(() => {
+    if (isHighAlert) {
+      // Create arc from Sun (-90, 0) to Earth center
+      const arcColor = flareClass === 'X' ? '#ef4444' : '#f97316';
+      setCmeArcs([{
+        startLat: 0,
+        startLng: -90,
+        endLat: 20, // Aim towards India
+        endLng: 78,
+        color: arcColor
+      }]);
+      
+      // Simulate arrival after transit time (scaled down for demo: 3 seconds)
+      const timer = setTimeout(() => {
+        setCmeArrivalCount(prev => prev + 1);
+        setCmeArcs([]); // Remove arc
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setCmeArcs([]);
+    }
+  }, [isHighAlert, flareClass]);
+
+  const customLayerData = [...sunData];
 
   return (
-    <div className="relative w-full h-full bg-black rounded-xl overflow-hidden border border-slate-700/50 flex items-center justify-center">
+    <div className="relative w-full h-full bg-black rounded-xl overflow-hidden flex items-center justify-center">
       <Globe
         ref={globeEl}
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
         
+        // Satellites
         pointsData={satData}
         pointLat="lat"
         pointLng="lng"
@@ -129,16 +164,18 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
           </div>
         `}
         
-        pathsData={pathsData}
+        // Satellite orbits + Terminator Line
+        pathsData={[...pathsData, ...terminatorPath]}
         pathPoints="path"
         pathPointLat={(p: any) => p[0]}
         pathPointLng={(p: any) => p[1]}
         pathPointAlt={(p: any) => p[2]}
-        pathColor={() => 'rgba(255,255,255,0.2)'}
-        pathDashLength={0.01}
-        pathDashGap={0.005}
-        pathDashAnimateTime={100000}
+        pathColor={(d: any) => d.name ? 'rgba(255,255,255,0.2)' : 'rgba(255,230,0,0.4)'} // yellow for terminator
+        pathDashLength={(d: any) => d.name ? 0.01 : 0}
+        pathDashGap={(d: any) => d.name ? 0.005 : 0}
+        pathDashAnimateTime={(d: any) => d.name ? 100000 : 0}
         
+        // Satellite Labels
         labelsData={satData}
         labelLat="lat"
         labelLng="lng"
@@ -149,14 +186,64 @@ const ISROGlobe: React.FC<ISROGlobeProps> = ({ flareClass }) => {
         labelColor={() => isHighAlert ? '#ef4444' : '#60a5fa'}
         labelResolution={2}
         
-        ringsData={ringsData}
+        // CME Propagation Arcs
+        arcsData={cmeArcs}
+        arcStartLat="startLat"
+        arcStartLng="startLng"
+        arcEndLat="endLat"
+        arcEndLng="endLng"
+        arcColor="color"
+        arcDashLength={0.4}
+        arcDashGap={4}
+        arcDashInitialGap={() => Math.random() * 4}
+        arcDashAnimateTime={3000} // Speed of CME
+        arcAltitude={2}
+        arcStroke={2}
+        
+        // Aurora Ring on CME Arrival
+        ringsData={cmeArrivalCount > 0 ? [{ lat: 60, lng: 0 }, { lat: -60, lng: 0 }] : []}
         ringLat="lat"
         ringLng="lng"
-        ringColor={() => '#ef4444'}
-        ringMaxRadius="maxR"
-        ringPropagationSpeed="propagationSpeed"
-        ringRepeatPeriod="repeatPeriod"
+        ringColor={() => '#10b981'} // Emerald green aurora
+        ringMaxRadius={25}
+        ringPropagationSpeed={3}
+        ringRepeatPeriod={800}
+
+        // Custom Sun geometry
+        customLayerData={customLayerData}
+        customThreeObject={(d: any) => {
+          const group = new THREE.Group();
+          
+          // Sun mesh
+          const geometry = new THREE.SphereGeometry(0.3, 32, 32);
+          const material = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+          const sphere = new THREE.Mesh(geometry, material);
+          group.add(sphere);
+
+          // Glow effect
+          const glowMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xff4400,
+            transparent: true,
+            opacity: 0.3,
+            blending: THREE.AdditiveBlending
+          });
+          const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(0.4, 32, 32), glowMaterial);
+          group.add(glowSphere);
+
+          return group;
+        }}
+        customThreeObjectUpdate={(obj, d: any) => {
+          Object.assign(obj.position, globeEl.current?.getCoords(d.lat, d.lng, d.alt));
+        }}
       />
+      
+      {/* CME Countdown Overlay */}
+      {isHighAlert && cmeArcs.length > 0 && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-900/80 border border-red-500 rounded-lg px-4 py-2 text-white animate-pulse">
+          <div className="text-xs font-bold uppercase tracking-wider text-red-200">CME Shockwave Inbound</div>
+          <div className="font-mono text-center mt-1">Impact in ~34 Hours</div>
+        </div>
+      )}
     </div>
   );
 };

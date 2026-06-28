@@ -20,47 +20,7 @@ interface ForecastPanelProps {
   peakTime?: string;
 }
 
-const FlareGauge: React.FC<{ probability: number }> = ({ probability }) => {
-  // SVG semicircle gauge
-  const radius = 80;
-  const circumference = Math.PI * radius;
-  const strokeDashoffset = circumference - (probability / 100) * circumference;
-
-  let color = '#22c55e'; // green
-  if (probability >= 30) color = '#eab308'; // yellow
-  if (probability >= 60) color = '#f97316'; // orange
-  if (probability >= 80) color = '#ef4444'; // red
-
-  return (
-    <div className="flex flex-col items-center justify-center relative w-full h-48">
-      <svg className="w-full h-full transform -rotate-180" viewBox="0 0 200 100">
-        <path
-          d="M 20 100 A 80 80 0 0 1 180 100"
-          fill="none"
-          stroke="#374151"
-          strokeWidth="15"
-          strokeLinecap="round"
-        />
-        <motion.path
-          d="M 20 100 A 80 80 0 0 1 180 100"
-          fill="none"
-          stroke={color}
-          strokeWidth="15"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-        />
-      </svg>
-      <div className="absolute top-1/2 transform translate-y-4 flex flex-col items-center">
-        <span className="text-4xl font-bold" style={{ color }}>{probability.toFixed(0)}%</span>
-        <span className="text-xs text-gray-400 mt-1 uppercase tracking-wider">M+ Flare Probability</span>
-        <span className="text-[10px] text-gray-500 mt-0.5">Next 6 Hours</span>
-      </div>
-    </div>
-  );
-};
+import ForecastGauge from './ForecastGauge';
 
 const ForecastPanel: React.FC<ForecastPanelProps> = ({ probability, historyData, forecastData, peakTime }) => {
   return (
@@ -68,8 +28,7 @@ const ForecastPanel: React.FC<ForecastPanelProps> = ({ probability, historyData,
       
       {/* PART A: Gauge */}
       <div className="col-span-1 border-r border-gray-800 pr-4 flex flex-col justify-center">
-        <h3 className="text-lg font-semibold mb-2">Flare Nowcast</h3>
-        <FlareGauge probability={probability} />
+        <ForecastGauge probability={probability} />
       </div>
 
       {/* PART B: Chart */}
